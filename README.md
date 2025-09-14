@@ -20,7 +20,7 @@ Example algorithms:
 md5($plain)
 md5($plain.$salt)
 sha256(md5(sha1($plain)).sha1($plain.$salt).sha256(md5($plain)).md5($plain).sha1(sha1($plain)).sha256(sha1($plain)))
-md5(CUT_16sha256($plain))
+md5(CUT16_sha256($plain))
 sha224(sha1($plain))
 ```
 
