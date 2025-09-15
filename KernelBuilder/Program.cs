@@ -1,4 +1,7 @@
-﻿using static KernelBuilder.Common;
+﻿using CommandLine;
+using System;
+using System.Collections.Generic;
+using static KernelBuilder.Common;
 
 namespace KernelBuilder
 {
@@ -6,14 +9,22 @@ namespace KernelBuilder
     {
         public static void Main(string[] args)
         {
-            if (args.Length != 2 || args.Contains("-h") || args.Contains("--help"))
-            {
-                Console.WriteLine("Usage: KernelBuilder <algorithm> <ID>");
-                Environment.Exit(0);
-            }
+            string algorithm = "";
+            string ID = "";
+            bool overwrite = false;
+            bool hashcat = false;
 
-            string algorithm = args[0];
-            string ID = args[1];
+            CommandLine.Parser.Default.ParseArguments<Options>(args).WithParsed(opts =>
+            {
+                algorithm = opts.Algorithm;
+                ID = opts.ID;
+                overwrite = opts.Overwrite;
+                hashcat = opts.Hashcat;
+            }).WithNotParsed(errors =>
+            {
+                // CommandLineParser already prints its own --help text on error, so do nothing
+                Environment.Exit(1);
+            });
 
             if(int.TryParse(ID, out _) == false || ID.Length > 5 || ID.Length == 0)
             {
@@ -25,33 +36,53 @@ namespace KernelBuilder
 
             List<string> instructions = Interpreter.GenerateInstructions(algorithm);
 
-            CreateFolderStructure(ID);
+            CreateFolderStructure(ID, overwrite, hashcat);
 
-            GenerateKernels(instructions, ID);
-            GenerateModule(algorithm, instructions, ID);
+            GenerateKernels(instructions, ID, hashcat);
+            GenerateModule(algorithm, instructions, ID, hashcat);
 
-            Console.WriteLine($"Plugin has been stored in plugins/{ID}");
-            Console.WriteLine("");
-            Console.WriteLine($"1) Copy and paste the 2 folders inside plugins/{ID} into Hashcat");
-            Console.WriteLine($"2) Compile Hashcat using: https://github.com/hashcat/hashcat/blob/master/BUILD.md");
+            if (hashcat)
+            {
+                Console.WriteLine($"Plugin has been stored in the Hashcat folders");
+                Console.WriteLine("");
+                Console.WriteLine($"Compile Hashcat using: https://github.com/hashcat/hashcat/blob/master/BUILD.md");
+            }
+            else
+            {
+                Console.WriteLine($"Plugin has been stored in plugins/{ID}");
+                Console.WriteLine("");
+                Console.WriteLine($"1) Copy and paste the 2 folders inside plugins/{ID} into Hashcat");
+                Console.WriteLine($"2) Compile Hashcat using: https://github.com/hashcat/hashcat/blob/master/BUILD.md");
+            }
         }
 
-        public static void CreateFolderStructure(string ID)
+        public static void CreateFolderStructure(string ID, bool overwrite, bool hashcat)
         {
-            // TODO: Add an overwrite argument to stop this bailing out
-            if (Directory.Exists($"plugins/{ID}"))
+            if (Directory.Exists($"plugins/{ID}") && overwrite == false && hashcat == false)
             {
                 Console.Error.WriteLine($"{ID} has already been used!");
                 Environment.Exit(0);
             }
-            
-            Directory.CreateDirectory($"plugins/{ID}");
-            Directory.CreateDirectory($"plugins/{ID}/src/modules");
-            Directory.CreateDirectory($"plugins/{ID}/OpenCL");
+
+            string prefix = "";
+
+            if (hashcat == false)
+            {
+                prefix = $"plugins/{ID}/";
+                Directory.CreateDirectory($"{prefix}");
+            }
+
+            Directory.CreateDirectory($"{prefix}src/modules");
+            Directory.CreateDirectory($"{prefix}OpenCL");
         }
 
-        public static void GenerateKernels(List<string> instructions, string ID)
+        public static void GenerateKernels(List<string> instructions, string ID, bool hashcat)
         {
+            string prefix = "";
+
+            if (hashcat == false)
+                prefix = $"plugins/{ID}/";
+
             AttackVector[] attackVectors = new AttackVector[] { AttackVector.a0, AttackVector.a1, AttackVector.a3 };
             foreach (AttackVector attackVector in attackVectors )
             {
@@ -67,17 +98,22 @@ namespace KernelBuilder
                 kernelCode.AddRange(KernelCodeGenerator.GenerateCompute(instructions, attackVector));
                 kernelCode.AddRange(KernelCodeGenerator.GenerateFooter(instructions.Last(), attackVector, KernelType.SingleHash));
 
-                File.WriteAllLines($"plugins/{ID}/OpenCL/m{ID}_{attackVector}-pure.cl", kernelCode.ToArray());
+                File.WriteAllLines($"{prefix}OpenCL/m{ID}_{attackVector}-pure.cl", kernelCode.ToArray());
             }
         }
 
-        public static void GenerateModule(string algorithm, List<string> instructions, string ID)
+        public static void GenerateModule(string algorithm, List<string> instructions, string ID, bool hashcat)
         {
+            string prefix = "";
+
+            if (hashcat == false)
+                prefix = $"plugins/{ID}/";
+
             CodeList moduleCode = new CodeList();
 
             moduleCode.AddRange(ModuleCodeGenerator.GenerateModule(algorithm, instructions, ID));
 
-            File.WriteAllLines($"plugins/{ID}/src/modules/module_{ID}.c", moduleCode.ToArray());
+            File.WriteAllLines($"{prefix}src/modules/module_{ID}.c", moduleCode.ToArray());
         }
     }
 }

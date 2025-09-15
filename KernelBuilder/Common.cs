@@ -1,4 +1,5 @@
-﻿using KernelBuilder.Algorithms;
+﻿using CommandLine;
+using KernelBuilder.Algorithms;
 
 namespace KernelBuilder
 {
@@ -16,6 +17,21 @@ namespace KernelBuilder
                 return new SHA256();
 
             throw new NotImplementedException("The hash function you specified is not supported!");
+        }
+
+        public class Options
+        {
+            [Value(0, MetaName = "algorithm", Required = true, HelpText = "Algorithm to create.")]
+            public string Algorithm { get; set; }
+
+            [Value(1, MetaName = "ID", Required = true, HelpText = "Kernel ID / -m number.")]
+            public string ID { get; set; }
+
+            [Option("overwrite", HelpText = "Overwrite previously created kernels.")]
+            public bool Overwrite { get; set; }
+
+            [Option("hashcat", HelpText = "Output directly to Hashcat directories.")]
+            public bool Hashcat { get; set; }
         }
 
         public enum Endianness
