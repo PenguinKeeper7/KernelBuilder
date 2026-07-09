@@ -50,6 +50,7 @@ namespace KernelBuilder
                 {
                     salted = true;
                     code.Add("static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;");
+                    break;
                 }
             }
 
