@@ -1,3 +1,7 @@
+# Note
+**This has been made completely defunct by Hashcat's new "recipes", please use them instead. More info:**
+https://github.com/hashcat/hashcat/blob/master/docs/hashcat-hash-recipe.md
+<br>
 # KernelBuilder
 KernelBuilder is an automatic generator for creating simple Hashcat-compatible plugins. They are [famously](https://github.com/hashcat/hashcat/blob/master/docs/hashcat-plugin-development-guide.md) difficult to get started with, so this project can provide everyone with an equal opportunity to create any primitive plugin they like, without needing to know how to write CUDA/OpenCL and C or any cryptography.
 
